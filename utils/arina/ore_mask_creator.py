@@ -360,7 +360,7 @@ if __name__ == "__main__":
     creator = OreMaskCreator()
     
     # Загрузка изображения
-    image_path = "path_pred.JPG"  # Замените на путь к вашему изображению
+    image_path = "utils/arina/path_pred.JPG"  # Замените на путь к вашему изображению
     
     if os.path.exists(image_path):
         creator.load_image(image_path)
