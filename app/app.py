@@ -1,12 +1,14 @@
 import sys
 import os
 import time
+import streamlit as st
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app'))
 
-import streamlit as st
 from utils.ainaz.imageLoader import load_image
+# Импортируем наш новый коннектор
+from ore_processor import OreProcessor
 
 st.set_page_config(
     page_title="Анализ руды (MVP)",
@@ -24,7 +26,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Заголовок точно как на картинке
 st.title("🧪 Анализ руды (MVP)")
 st.caption("Интеллектуальный анализ шлифа с цветовой сегментацией")
 
@@ -43,12 +44,19 @@ if file is None:
 st.success("Файл загружен")
 
 # -----------------------------
-# 2. Парсинг изображения
+# 2. Парсинг изображения (Твой исходный лоадер метаданных)
 # -----------------------------
 img_data = load_image(file)
 
+# Инициализируем процессор для масок
+processor = OreProcessor()
+# Считываем байты из uploader'а и передаем в OpenCV пайплайн
+file.seek(0)
+file_bytes = file.read()
+processor.load_from_bytes(file_bytes)
+
 # -----------------------------
-# 3. Две колонки
+# 3. Две колонки (Исходное и ЧБ/Предобработанное через CLAHE)
 # -----------------------------
 col1, col2 = st.columns(2)
 
@@ -57,14 +65,15 @@ with col1:
     st.image(file, use_container_width=True)
 
 with col2:
-    st.subheader("⚙️ Обработанное изображение")
-    st.image(img_data.image, use_container_width=True)
+    st.subheader("⚙️ Предобработанное изображение (Грейскейл + CLAHE)")
+    # Применяем шаг нормализации яркости из твоего второго скрипта перед показом
+    processor.apply_clahe_preprocessing(target_brightness=120)
+    st.image(processor.gray, use_container_width=True, channels="GRAY")
 
 # -----------------------------
 # 4. Метаданные
 # -----------------------------
 st.subheader("📊 Метаданные изображения")
-
 meta_col1, meta_col2 = st.columns(2)
 
 with meta_col1:
@@ -80,40 +89,99 @@ with meta_col2:
 st.divider()
 
 # -----------------------------
-# 5. Анализ
+# 5. Реальный компьютерный анализ
 # -----------------------------
 if st.button("🔬 Запустить анализ", type="primary", use_container_width=True):
-    with st.spinner("Выполняется анализ..."):
-        time.sleep(1.5)
+    with st.spinner("Выполняется математический анализ масок минералов..."):
+        # Рассчитываем маски на основе CLAHE-изображения
+        processor.create_talc_mask()
+        processor.create_fine_mask()
+        processor.create_normal_mask()
         
-        st.success("✅ Анализ завершён!")
+        # Получаем реальную статистику по пикселям
+        stats = processor.get_statistics()
+        ore_class = processor.classify_ore(stats)
         
-        st.subheader("🎨 Результат сегментации")
+        time.sleep(0.5) # UX-пауза
         
-        res_col1, res_col2 = st.columns([3, 2])
+        st.success(f"✅ Анализ завершён! Тип породы: **{ore_class}**")
         
-        with res_col1:
-            st.image(
-                "https://via.placeholder.com/900x480/008855/ffffff?text=Цветная+Маска+Сегментации",
-                caption="Цветная маска сегментации",
-                use_container_width=True
-            )
+        # Верхний блок с метриками
+        st.subheader("📊 Результаты количественного анализа")
+        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+        m_col1.metric("🔵 Тёмные области (Тальк)", f"{stats['talc']}%")
+        m_col2.metric("🔴 Тонкие срастания (Fine)", f"{stats['fine']}%")
+        m_col3.metric("🟢 Крупные области (Normal)", f"{stats['normal']}%")
+        m_col4.metric("⚪ Пустая порода / Остальное", f"{stats['waste']}%")
         
-        with res_col2:
-            st.metric("🟢 Пирит", "42.8%")
-            st.metric("🔵 Халькопирит", "31.5%")
-            st.metric("🔴 Сфалерит", "18.7%")
-            st.metric("⚪ Пустая порода", "7.0%")
-            
-            st.divider()
-            st.success("**Точность модели:** 94.2%")
-
-        st.subheader("📈 Распределение минералов")
-        chart_data = {
-            "Минерал": ["Пирит", "Халькопирит", "Сфалерит", "Пустая порода"],
-            "Процент": [42.8, 31.5, 18.7, 7.0]
+        st.divider()
+        
+# Интерактивные вкладки для раздельного просмотра масок
+        st.subheader("🎨 Визуализация сегментации")
+        
+        # Создаем 4 вкладки: Общая и 3 раздельные
+        tab_all, tab_talc, tab_fine, tab_normal = st.tabs([
+            "🌈 Все маски вместе", 
+            "🔵 Только Тальк", 
+            "🔴 Тонкие срастания", 
+            "🟢 Крупные области"
+        ])
+        
+        # Базовые цвета для создания индивидуальных оверлеев
+        colors_rgb = {
+            "talc": [0, 0, 255],     # Синий
+            "fine": [255, 0, 0],     # Красный
+            "normal": [0, 255, 0]    # Зеленый
         }
-        st.bar_chart(chart_data, x="Минерал", y="Процент")
+        
+        # Задаем желаемую ширину изображения в пикселях (например, 600px или 700px)
+        # Это не даст картинке растягиваться на весь экран монитора
+        IMG_DISPLAY_WIDTH = 650 
+        
+        with tab_all:
+            annotated_img = processor.get_combined_overlay()
+            # Помещаем в колонки, чтобы картинка была компактной
+            c_img, _ = st.columns([2, 1])
+            with c_img:
+                st.image(annotated_img, caption="Совмещенная карта сегментации", width=IMG_DISPLAY_WIDTH)
+            
+        with tab_talc:
+            if processor.masks["talc"] is not None:
+                overlay_talc = processor.rgb.copy()
+                overlay_talc[processor.masks["talc"] > 0] = colors_rgb["talc"]
+                c_img, _ = st.columns([2, 1])
+                with c_img:
+                    st.image(overlay_talc, caption="Выделен только Тальк (Синий цвет)", width=IMG_DISPLAY_WIDTH)
+            else:
+                st.warning("Маска Талька пуста")
+                
+        with tab_fine:
+            if processor.masks["fine"] is not None:
+                overlay_fine = processor.rgb.copy()
+                overlay_fine[processor.masks["fine"] > 0] = colors_rgb["fine"]
+                c_img, _ = st.columns([2, 1])
+                with c_img:
+                    st.image(overlay_fine, caption="Выделены только Тонкие срастания (Красный цвет)", width=IMG_DISPLAY_WIDTH)
+            else:
+                st.warning("Маска тонких срастаний пуста")
+                
+        with tab_normal:
+            if processor.masks["normal"] is not None:
+                overlay_normal = processor.rgb.copy()
+                overlay_normal[processor.masks["normal"] > 0] = colors_rgb["normal"]
+                c_img, _ = st.columns([2, 1])
+                with c_img:
+                    st.image(overlay_normal, caption="Выделены только Крупные области (Зеленый цвет)", width=IMG_DISPLAY_WIDTH)
+            else:
+                st.warning("Маска крупных областей пуста")
+
+        # График распределения
+        st.subheader("📈 Распределение компонентов")
+        chart_data = {
+            "Компонент": ["Тальк", "Тонкие ср.", "Крупные ср.", "Остальное"],
+            "Процент (%)": [stats['talc'], stats['fine'], stats['normal'], stats['waste']]
+        }
+        st.bar_chart(chart_data, x="Компонент", y="Percent" if "Percent" in chart_data else "Процент (%)")
 
 else:
-    st.info("Нажмите кнопку «Запустить анализ» для получения результата")
+    st.info("Нажмите кнопку «Запустить анализ» для получения реальных результатов")

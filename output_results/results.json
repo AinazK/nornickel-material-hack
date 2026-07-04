@@ -1,0 +1,56 @@
+[
+    {
+        "image_name": "path_pred-1.JPG",
+        "percentages": {
+            "talc": 15.8,
+            "fine": 65.76,
+            "normal": 30.0
+        },
+        "classification": "оталькованная руда (talk)"
+    },
+    {
+        "image_name": "path_pred-3.JPG",
+        "percentages": {
+            "talc": 6.55,
+            "fine": 60.89,
+            "normal": 39.05
+        },
+        "classification": "труднообогатимая руда (fine)"
+    },
+    {
+        "image_name": "path_pred-5.JPG",
+        "percentages": {
+            "talc": 0.67,
+            "fine": 75.78,
+            "normal": 27.7
+        },
+        "classification": "труднообогатимая руда (fine)"
+    },
+    {
+        "image_name": "path_pred-6.JPG",
+        "percentages": {
+            "talc": 6.22,
+            "fine": 63.03,
+            "normal": 37.42
+        },
+        "classification": "труднообогатимая руда (fine)"
+    },
+    {
+        "image_name": "path_pred.JPG",
+        "percentages": {
+            "talc": 1.72,
+            "fine": 80.97,
+            "normal": 21.29
+        },
+        "classification": "труднообогатимая руда (fine)"
+    },
+    {
+        "image_name": "test.jpg",
+        "percentages": {
+            "talc": 0.07,
+            "fine": 95.52,
+            "normal": 6.04
+        },
+        "classification": "труднообогатимая руда (fine)"
+    }
+]
