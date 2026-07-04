@@ -1,7 +1,7 @@
 from PIL import Image
 import numpy as np
 import io
-from utils.ainaz.imageData import ImageData
+from utils.imageData import ImageData
 
 
 def load_image(uploaded_file):
