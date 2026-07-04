@@ -3,6 +3,10 @@ import os
 import time
 import streamlit as st
 
+import numpy as np
+from PIL import Image
+from streamlit_drawable_canvas import st_canvas
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app'))
 
@@ -154,7 +158,7 @@ if st.button("🔬 Запустить анализ", type="primary", use_contain
                     st.image(overlay_talc, caption="Выделен только Тальк (Синий цвет)", width=IMG_DISPLAY_WIDTH)
             else:
                 st.warning("Маска Талька пуста")
-                
+        
         with tab_fine:
             if processor.masks["fine"] is not None:
                 overlay_fine = processor.rgb.copy()
