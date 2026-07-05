@@ -109,7 +109,7 @@ pip install -r requirements.txt
 ### 4. Установка весов
 
 ```bash
-pip python utils/download.py
+python utils/download.py
 ```
 
 ### 5. Запуск приложения
@@ -118,7 +118,6 @@ pip python utils/download.py
 streamlit run app.py
 ```
 
-Перед запуском, необходимо добавить файл best_model_talc.pth в путь artifacts\checkpoints\
 
 ## 🎯 Что реализовано:
 
